@@ -1,0 +1,6 @@
+venv
+._*
+__pycache__/
+install.log
+.env
+teste.py

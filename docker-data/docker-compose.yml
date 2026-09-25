@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  minio:
+    image: minio/minio:latest #quay.io/minio/minio:latest
+    container_name: vale-amanhecer-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: miniouser #${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: miniopassword ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ${MINIO_VOLUME} 
+    command: server /data --console-address ":9001"
+    restart: unless-stopped

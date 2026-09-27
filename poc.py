@@ -56,6 +56,7 @@ CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME")
 def montar_indice():
     # 1. Leitura dos documentos em PDF e TXT ----------------------------
     print(f"[1/4] Lendo documentos do diretório {DATA_DIR}...")
+    print(f"Documentos totais sendo lidos: {len(DATA_DIR)}")
     documentos = SimpleDirectoryReader(
         input_dir=DATA_DIR,
         required_exts=[".pdf", ".txt"],

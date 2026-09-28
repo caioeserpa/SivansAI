@@ -8,20 +8,25 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
-MINIO_ROOT_USER = os.getenv("MINIO_ROOT_USER", "admin")
-MINIO_ROOT_PASSWORD = os.getenv("MINIO_ROOT_PASSWORD", "")
+MINIO_ROOT_USER = os.getenv("MINIO_ROOT_USER")
+MINIO_ROOT_PASSWORD = os.getenv("MINIO_ROOT_PASSWORD")
 BUCKET_BRONZE = os.getenv("MINIO_BUCKET_BRONZE", "bronze")
 BUCKET_SILVER = os.getenv("MINIO_BUCKET_SILVER", "silver")
 
 
 def get_minio_client():
+    
+    # Aplica strip() para garantir que não há espaços invisíveis
+    access_key = MINIO_ROOT_USER.strip() if MINIO_ROOT_USER else None
+    secret_key = MINIO_ROOT_PASSWORD.strip() if MINIO_ROOT_PASSWORD else None
+    
     #Cria o cliente que fala com o MinIO usando a mesma API do S3
     return boto3.client(
         "s3",
-        endpoint_url=f"htpp://{MINIO_ENDPOINT}",
-        aws_acess_key_id=MINIO_ROOT_USER,
-        aws_secret_acess_key=MINIO_ROOT_PASSWORD,
-        config=Config(signature_version="s3v4"),
+        endpoint_url=f"http://{MINIO_ENDPOINT}",
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        config=Config(signature_version="s3v4", s3={'addressing_style': 'path'}),
         region_name="us-east-1",
     )
     

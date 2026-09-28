@@ -21,7 +21,7 @@ Como rodar:
 import os
 import subprocess
 import tempfile
-import pathlib as Path
+from pathlib import Path
 
 from faster_whisper import WhisperModel
 
@@ -65,7 +65,13 @@ def format_timestap(seconds: float) -> str:
 def transcribe_audio(audio_path: Path, model:WhisperModel):
     "Roda o faster-whisper e retorna uma lsita de segmentos com texto e timestamps"
     
-    segments, _info = model.transcribe(str(audio_path), language="pt-br")
+    segments, _info = model.transcribe(
+                                        str(audio_path),
+                                        language="pt",
+                                        vad_filter=True,
+                                        vad_parameters=dict(min_silence_duration_ms=500),
+                                        condition_on_previous_text=False
+                                        )
     
     transcribed_segments = []
     for segment in segments:
@@ -102,7 +108,7 @@ def process_video(client, key: str, tmp_dir: Path, model: WhisperModel):
         print(f"[transcribe_videos] AVISO: nenhuma fala detectada em '{key}'.")
  
     video_name = local_video.stem
-    markdown_text = buil_markdown(video_name, segments)
+    markdown_text = build_markdown(video_name, segments)
  
     output_name = video_name + ".md"
     local_output = tmp_dir / output_name
@@ -125,7 +131,7 @@ def main():
     print(f"[transcribe_videos] Carregando modelo Whisper '{WHISPER_MODEL_SIZE}' (pode demorar na primeira vez)...")
  
     # compute_type="int8" deixa a transcrição mais rápida em CPU (Mac sem GPU dedicada).
-    model = WhisperModel(WHISPER_MODEL_SIZE, device="cpu", compute_type="int8")
+    model = WhisperModel(WHISPER_MODEL_SIZE, device="cpu", compute_type="auto")
  
     with tempfile.TemporaryDirectory() as tmp:
         tmp_dir = Path(tmp)

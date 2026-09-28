@@ -52,8 +52,8 @@ def extract_lines_with_font_size(pdf_path: Path):
         
         pages_lines.append(lines_on_page)
         
-        doc.close()
-        return pages_lines
+    doc.close()
+    return pages_lines
     
 def detect_repeated_noise_lines(pages_lines, min_repetition_ratio=0.6):
     #Identifica linhas que se repetem em muitas páginas (candidatas a cabeçalho/rodapé)
@@ -68,7 +68,10 @@ def detect_repeated_noise_lines(pages_lines, min_repetition_ratio=0.6):
         line_counter.update(unique_lines_this_page)
         
     threshold = max(2, int(total_pages * min_repetition_ratio))
-    noise_lines = {text for text, _ in line_counter.items() if count >= threshold}
+    #noise_lines = {text for text, _ in line_counter.items() if count >= threshold}
+    noise_lines = {text for text, count in line_counter.items() if count >= threshold}
+    
+    
     return noise_lines
 
 def convert_to_markdown(pages_lines, noise_lines) -> str:

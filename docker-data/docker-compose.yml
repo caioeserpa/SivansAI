@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   minio:
-    image: minio/minio:latest #quay.io/minio/minio:latest
+    image: pgsty/minio #minio/minio:latest #quay.io/minio/minio:latest
     container_name: vale-amanhecer-minio
     ports:
       - "9000:9000"

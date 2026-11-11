@@ -1,6 +1,33 @@
-venv
-._*
+# Ambientes virtuais
+venv/
+.venv/
+env/
+
+# Python cache e compilação
 __pycache__/
+*.py[cod]
+*$py.class
 install.log
+
+# Configurações locais e segredos
 .env
+.vscode/
+.idea/
+
+# macOS
+._*
+.DS_Store
+
+# Dados locais e modelos pesados
+acervo/
+backup_minio_data/
+qdrant_storage/
+ollama-models/
+historico.db
+mlflow.db
+*.db
+mlruns/
+
+# Arquivos temporários e testes
 teste.py
+*copy.py*

@@ -1,0 +1,50 @@
+services:
+  minio:
+    image: pgsty/minio
+    container_name: vale-amanhecer-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+    #  - ${MINIO_VOLUME}:/data
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: vale-amanhecer-qdrant
+    ports:
+      - "6333:6333"   # API HTTP/gRPC
+      - "6334:6334"   # gRPC dedicado
+    volumes:
+      - qdrant_data:/qdrant/storage
+     # - ${QDRANT_STORAGE}:/qdrant/storage
+
+    restart: unless-stopped
+
+  app:
+    build:
+      context: . 
+      dockerfile: ./docker-data/Dockerfile
+    container_name: vale-amanhecer-app
+    ports:
+      - "8000:8000"
+    environment:
+      MINIO_ENDPOINT: minio:9000
+      QDRANT_HOST: qdrant
+      OLLAMA_HOST: http://host.docker.internal:11434
+    env_file:
+      - .env
+    depends_on:
+      - minio
+      - qdrant
+    restart: unless-stopped
+
+
+volumes:
+  minio_data:
+  qdrant_data:  

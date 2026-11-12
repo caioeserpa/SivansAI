@@ -1,12 +1,13 @@
-# RAG do Acervo Temático do Vale do Amanhecer
+# SivansAI — RAG do Acervo Temático do Vale do Amanhecer
 
 Sistema de perguntas e respostas sobre um acervo de **PDFs e vídeos**, construído com
 ferramentas **100% open source** e pensado para rodar **localmente**. Você pergunta em português e recebe uma resposta baseada
 **somente** nos documentos e vídeos indexados, com a **fonte citada** (arquivo e seção,
 ou vídeo e minuto).
 
-<!-- Adicione aqui uma captura de tela da interface:
-![Interface do chat](docs/img/interface.png) -->
+<div align="center">
+  <img src="docs/img/apresentacaoSivansAI.gif" alt="Demonstração da Plataforma SivansAI" width="100%" />
+</div>
 
 ## Destaques
 

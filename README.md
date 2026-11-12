@@ -116,43 +116,106 @@ primeira execução (é preciso internet nesse momento).
 
 ## Como usar
 
-**1. Subir o MinIO e o Qdrant**
+### 1. Subir a Infraestrutura (MinIO e Qdrant)
+
+Certifique-se de que o Docker esteja em execução e inicialize o storage de objetos e o banco vetorial:
 
 ```bash
 docker compose up -d minio qdrant
 ```
 
-**2. Colocar o acervo na pasta e processar.** Copie os `.pdf` e `.mp4` para a pasta
-definida em `ACERVO_DIR` (nomes de arquivo únicos) e rode uma sincronização:
+---
+
+### 2. Ingestão do Acervo (Como Adicionar e Processar Dados)
+
+O pipeline foi projetado para ler, extrair, vetorizar e indexar conteúdos automaticamente a partir de uma pasta local configurada.
+
+#### A. Configurar e Criar a Pasta do Acervo
+
+1. **Definir no arquivo `.env`:**  
+   A variável `ACERVO_DIR` aponta para o diretório onde os seus arquivos de acervo estão armazenados (pode ser um caminho relativo à raiz ou absoluto, ideal para uso em SSDs ou HDs externos):
+   ```env
+   ACERVO_DIR=./acervo
+   ```
+2. **Criar a pasta no projeto (se ainda não existir):**
+   ```bash
+   mkdir -p acervo
+   ```
+3. **Formatos Suportados:**
+   * **`.pdf`**: Livros, cartilhas, cartas doutrinárias, leis e rituais digitalizados (texto extraído via `pypdf`).
+   * **`.mp4`**: Gravações de áudio/vídeo de aulas, palestras e instruções mediúnicas (o áudio é extraído e transcrito em blocos temporais com minutos via OpenAI `whisper`).
+
+> 💡 **Boas práticas para os arquivos:**
+> * Utilize nomes de arquivo únicos, claros e sem caracteres especiais complexos (ex: `leis_do_amanhecer_1980.pdf`, `palestra_tio_mario_1982.mp4`).
+> * Substituir um arquivo existente mantendo exatamente o mesmo nome é tratado pelo pipeline como uma **atualização** (o conteúdo antigo é limpo e o novo é reprocessado).
+
+#### B. Executar o Processamento e Indexação dos Dados
+
+Você pode processar os dados de duas maneiras, de acordo com o seu fluxo de trabalho:
+
+* **Opção 1: Carga em Lote Único (`--uma-vez`) — Recomendado no primeiro uso**  
+  Processa e indexa todos os `.pdf` e `.mp4` presentes na pasta do acervo de ponta a ponta:
+  ```bash
+  python data_pipeline/watcher.py --uma-vez
+  ```
+  *Fluxo executado:*
+  1. Envia os arquivos brutos para o MinIO (Camada Bronze).
+  2. Extrai texto dos PDFs e transcreve os vídeos MP4.
+  3. Salva os textos estruturados com metadados no MinIO (Camada Silver).
+  4. Segmenta o texto em chunks semânticos (`chunking.py`).
+  5. Gera embeddings (`sentence-transformers/all-MiniLM-L6-v2`) e salva os vetores no Qdrant.
+  6. Notifica a API para atualizar o índice léxico BM25 (`/reindexar-bm25`).
+
+* **Opção 2: Modo Vigia Contínuo (*Watcher*) — Para adicionar arquivos dinamicamente**  
+  Deixe o vigia rodando em um terminal dedicado:
+  ```bash
+  python data_pipeline/watcher.py
+  ```
+  *O vigia monitora a pasta `acervo/` em tempo real. Sempre que um novo arquivo for colado ou baixado na pasta, ele aguarda o término da cópia no disco (`WATCHER_SEGUNDOS_ESTAVEL`), processa, indexa no Qdrant e notifica a API automaticamente, sem necessidade de reiniciar o sistema.*
+
+#### C. Como Validar se os Dados Foram Lidos e Indexados
+
+Você pode confirmar que o acervo foi ingerido com sucesso de três maneiras:
+
+1. **Pela Interface Web (Streamlit):**  
+   Abra `http://localhost:8501`. Na barra lateral, o indicador verde confirmará o status:
+   > 🟢 **Acervo Doutrinário Conectado**  
+   > • 8.382 trechos indexados (Qdrant)  
+   > • 42 termos no glossário oficial
+2. **Pela API (via Terminal ou cURL):**
+   ```bash
+   curl http://localhost:8000/health
+   ```
+   Retornará um JSON confirmando que `chunks_indexados` é maior que zero.
+3. **Pelos Dashboards dos Serviços:**
+   * **Qdrant Dashboard:** Acesse `http://localhost:6333/dashboard` para visualizar a coleção `documentos_acervo`.
+   * **MinIO Console:** Acesse `http://localhost:9001` (login `admin` / `miniopassword`) para inspecionar os buckets `bronze` e `silver`.
+
+---
+
+### 3. Subir a API e a Interface Web
+
+Com os dados indexados, inicie a API e o frontend em dois terminais (com o `venv` ativo):
 
 ```bash
-python data_pipeline/watcher.py --uma-vez
-```
-
-**3. Subir a API e a interface** (em dois terminais, com o `venv` ativo):
-
-```bash
+# Terminal 1: Servidor FastAPI
 uvicorn app.main:app
-streamlit run frontend/ui.py      # abre em http://localhost:8501
+
+# Terminal 2: Interface Streamlit
+streamlit run frontend/ui.py      # Abre em http://localhost:8501
 ```
 
-**4. Adicionar itens depois.** Deixe o vigia rodando e basta copiar arquivos novos para
-a pasta do acervo:
+---
 
-```bash
-python data_pipeline/watcher.py
-```
+### 4. Desligar a Infraestrutura
 
-Ele espera o arquivo terminar de ser copiado, envia ao MinIO, processa, indexa e avisa
-a API. Substituir um arquivo mantendo o nome é tratado como atualização.
-
-**5. Desligar**
+Para pausar os serviços do MinIO e Qdrant sem perder os dados indexados:
 
 ```bash
 docker compose down
 ```
 
-Os dados continuam salvos nas pastas definidas em `MINIO_VOLUME` e `QDRANT_STORAGE`.
+Os dados continuarão salvos nos volumes locais definidos em `MINIO_VOLUME` (`./backup_minio_data`) e `QDRANT_STORAGE` (`./qdrant_storage`).
 
 ## API
 
@@ -319,7 +382,7 @@ Gabarito com **10** perguntas temáticas do acervo (`evaluation/gold_questions.j
 ## Roadmap
 
 O planejamento de evolução técnica, prioridades e estimativas de versão estão documentados em:
-* 🗺️ [**ROADMAP.md**](ROADMAP.md) — Fases de desenvolvimento (v1.1, v1.2, v1.3 e v2.0).
+* 🗺️ [**ROADMAP.md**](docs/ROADMAP.md) — Fases de desenvolvimento (v1.1, v1.2, v1.3 e v2.0).
 * 💡 [**docs/SUGESTOES_DE_MELHORIAS.md**](docs/SUGESTOES_DE_MELHORIAS.md) — Detalhamento técnico, arquitetura e snippets de código para cada proposta (Streaming, Whisper `initial_prompt`, Otimização de Prompts, OCR e CI/CD).
 
 ## Aviso sobre o conteúdo
